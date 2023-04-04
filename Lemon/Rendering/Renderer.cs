@@ -1,7 +1,6 @@
 ﻿using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.Common;
 using OpenTK.Graphics.OpenGL4;
-using ImGuiNET;
 using Lemon.Shaders;
 
 namespace Lemon.Rendering;
@@ -63,8 +62,6 @@ internal sealed class Renderer : GameWindow {
         string vertShaderCode = Reader.ReadToString("../../../Shaders/vertShader.glsl");
         string fragShaderCode = Reader.ReadToString("../../../Shaders/fragShader.glsl");
         rayTracer = new RayTracer(vertShaderCode, fragShaderCode, this.ClientSize.X, this.ClientSize.Y);
-
-        camera = new Camera(60f, 0.1f, 100f, this.ClientSize.X, this.ClientSize.Y);
     }
 
     protected override void OnUnload() {
@@ -86,8 +83,6 @@ internal sealed class Renderer : GameWindow {
         base.OnResize(e);
 
         GL.Viewport(0, 0, e.Width, e.Height);
-
-        camera.OnResize(this.ClientSize.X, this.ClientSize.Y);
     }
 
     protected override void OnRenderFrame(FrameEventArgs args) {
@@ -109,10 +104,8 @@ internal sealed class Renderer : GameWindow {
         var keyboardState = this.KeyboardState;
         var mouseState = this.MouseState;
         
-        camera.OnUpdate((float)args.Time, mouseState, keyboardState, out CursorState cursorState);
+        rayTracer.OnUpdate((float)args.Time, mouseState, keyboardState, out CursorState cursorState);
         this.CursorState = cursorState;
-
-        rayTracer.OnUpdate((float)args.Time, keyboardState);
 
         this.Title = $"FPS: {1 / args.Time:F0} ({args.Time * 1000f:F0}ms)";
     }

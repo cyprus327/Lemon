@@ -1,5 +1,6 @@
 ﻿using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Lemon.Rendering;
@@ -42,38 +43,29 @@ internal sealed class RayTracer : IDisposable {
         int viewportLocation = GL.GetUniformLocation(Handle, "ViewportSize");
         GL.Uniform2(viewportLocation, width, height);
 
-        rayOriginUniformLocation = GL.GetUniformLocation(Handle, "RayOrigin");
-        GL.Uniform3(rayOriginUniformLocation, rayOrigin);
+        camera = new Camera(60f, 0.1f, 100f);
 
+        rayOriginUniformLocation = GL.GetUniformLocation(Handle, "RayOrigin");
+        GL.Uniform3(rayOriginUniformLocation, camera.Position);
+
+        forwardDirUniformLocation = GL.GetUniformLocation(Handle, "ForwardDir");
+        GL.Uniform3(forwardDirUniformLocation, camera.ForwardDirection);
     }
 
     public int Handle { get; init; }
     public string Info { get; set; }
 
-    private Vector3 rayOrigin = new Vector3(0f, 0f, 1.5f);
-    private Vector3 rayDir = new Vector3(0f, 0f, -1f);
+    private readonly Camera camera;
 
-    private int rayOriginUniformLocation;
+    private readonly int rayOriginUniformLocation, forwardDirUniformLocation;
 
     private bool disposed = false;
 
-    public void OnUpdate(float deltaTime, KeyboardState keyboardState) {
-        float speed = 5;
+    public void OnUpdate(float deltaTime, MouseState mouseState, KeyboardState keyboardState, out CursorState cursorState) {
+        camera.OnUpdate(deltaTime, mouseState, keyboardState, out cursorState);
 
-        if (keyboardState.IsKeyDown(Keys.W))
-            rayOrigin.Z -= deltaTime / speed;
-        else if (keyboardState.IsKeyDown(Keys.S))
-            rayOrigin.Z += deltaTime / speed;
-        if (keyboardState.IsKeyDown(Keys.A))
-            rayOrigin.X -= deltaTime / speed;
-        else if (keyboardState.IsKeyDown(Keys.D))
-            rayOrigin.X += deltaTime / speed;
-        if (keyboardState.IsKeyDown(Keys.Q))
-            rayOrigin.Y -= deltaTime / speed;
-        else if (keyboardState.IsKeyDown(Keys.E))
-            rayOrigin.Y += deltaTime / speed;
-
-        GL.Uniform3(rayOriginUniformLocation, rayOrigin);
+        GL.Uniform3(rayOriginUniformLocation, camera.Position);
+        GL.Uniform3(forwardDirUniformLocation, camera.ForwardDirection);
     }
 
     ~RayTracer() {
