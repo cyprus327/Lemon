@@ -7,6 +7,15 @@ in vec2 Resolution;
 
 out vec4 fragColor;
 
+struct sphere {
+	vec3 position;
+	vec3 albedo;
+	float radius;
+	bool null;
+};
+
+sphere spheres[3];
+
 mat4 lookAt(vec3 eye, vec3 center, vec3 up) {
     vec3 f = normalize(center - eye);
     vec3 s = normalize(cross(f, up));
@@ -45,34 +54,65 @@ mat4 inverseView(vec3 pos, vec3 forwardDir) {
 
 void main() {
 	vec2 uv = gl_FragCoord.xy / Resolution.xy * 2.0 - 1.0;
+	
+	// initiazlize spheres
+	spheres[0].position = vec3(0.0);
+	spheres[0].albedo = vec3(1.0);
+	spheres[0].radius = 0.5;
+	spheres[0].null = false;
 
-	// (bx^2 + by^2)t^2 + 2(axbx + ayby)t + (ax^2 + ay^2 - r^2) = 0
+	spheres[1].position = vec3(-1.0, 0.0, 0.0);
+	spheres[1].albedo = vec3(0.2, 0.2, 1.0);
+	spheres[1].radius = 0.2;
+	spheres[1].null = false;
 
-	// a = ray origin
-	// b = ray direction
-	// r = radius of circle
-	// t = hit distance
+	spheres[2].position = vec3(2.0, 0.0, 0.0);
+	spheres[2].albedo = vec3(1.0, 0.2, 0.2);
+	spheres[2].radius = 1;
+	spheres[2].null = false;
 
 	vec4 target = inverseProjection(60.0, 0.1, 100.0) * vec4(uv.xy, 1.0, 1.0);
 	vec3 rayDir = vec3(inverseView(RayOrigin, ForwardDir) * vec4(normalize(vec3(target) / target.w), 0.0));
 	rayDir = normalize(rayDir);
-	float radius = 0.5;
+	
+	sphere closestSphere;
+	closestSphere.null = true;
+	float hitDist = 1e38;
+	for (int i = 0; i < 3; i++) {
+		// (bx^2 + by^2)t^2 + 2(axbx + ayby)t + (ax^2 + ay^2 - r^2) = 0
 
-	float a = dot(rayDir, rayDir);
-	float b = 2.0 * dot(RayOrigin, rayDir);
-	float c = dot(RayOrigin, RayOrigin) - radius * radius;
+		// a = ray origin
+		// b = ray direction
+		// r = radius of circle
+		// t = hit distance
 
-	// b^2 - 4ac
-	float discriminant = b * b - 4.0 * a * c;
-	if (discriminant < 0) {
-		fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		vec3 origin = RayOrigin - spheres[i].position;
+
+		float a = dot(rayDir, rayDir);
+		float b = 2.0 * dot(origin, rayDir);
+		float c = dot(origin, origin) - spheres[i].radius * spheres[i].radius;
+
+		// b^2 - 4ac
+		float discriminant = b * b - 4.0 * a * c;
+		if (discriminant < 0) {
+			continue;
+		}
+
+		// (-b +- sqrt(discriminant)) / 2a
+		float closestT = (-b - sqrt(discriminant)) / (2.0 * a);
+		if (closestT < hitDist) {
+			closestSphere = spheres[i];
+			hitDist = closestT;
+		}
+	}
+
+	if (closestSphere.null) {
+		fragColor = vec4(0.1, 0.1, 0.2, 1.0);
 		return;
 	}
 
-	// (-b +- sqrt(discriminant)) / 2a
-	float closestT = (-b - sqrt(discriminant)) / (2.0 * a);
-
-	vec3 hitPoint = RayOrigin + rayDir * closestT;
+	vec3 origin = RayOrigin - closestSphere.position;
+	vec3 hitPoint = origin + rayDir * hitDist;
 	vec3 normal = normalize(hitPoint);
 
 	vec3 lightDir = vec3(-1.0, -1.0, -1.0);
@@ -80,7 +120,7 @@ void main() {
 
 	float lightIntensity = max(0, dot(normal, -lightDir));
 
-	vec3 sphereColor = vec3(1.0, 0.0, 0.0);
+	vec3 sphereColor = closestSphere.albedo;
 	sphereColor *= lightIntensity;
 	fragColor = vec4(sphereColor, 1.0);
 }
