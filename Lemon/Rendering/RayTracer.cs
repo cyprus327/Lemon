@@ -1,4 +1,5 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using ImGuiNET;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -54,6 +55,9 @@ internal sealed class RayTracer : IDisposable {
         fovUniformLocation = GL.GetUniformLocation(Handle, "FOV");
         GL.Uniform1(fovUniformLocation, camera.Fov);
 
+        bouncesUniformLocation = GL.GetUniformLocation(Handle, "Bounces");
+        GL.Uniform1(bouncesUniformLocation, bounces);
+
         Info = string.Empty;
     }
 
@@ -61,21 +65,29 @@ internal sealed class RayTracer : IDisposable {
     public string Info { get; private set; }
 
     private readonly Camera camera;
-    private Vector3 LightDirection;
+    private int bounces = 4;
 
     private readonly int rayOriginUniformLocation, forwardDirUniformLocation;
-    private readonly int fovUniformLocation;
+    private readonly int fovUniformLocation, bouncesUniformLocation;
 
     private bool disposed = false;
 
     public void OnUpdate(float deltaTime, MouseState mouseState, KeyboardState keyboardState, out CursorState cursorState) {
         camera.OnUpdate(deltaTime, mouseState, keyboardState, out cursorState);
 
+        if (keyboardState.IsKeyReleased(Keys.R))
+            bounces--;
+        else if (keyboardState.IsKeyReleased(Keys.T))
+            bounces++;
+
+        bounces = Math.Max(1, bounces);
+
         GL.Uniform3(rayOriginUniformLocation, camera.Position);
         GL.Uniform3(forwardDirUniformLocation, camera.ForwardDirection);
         GL.Uniform1(fovUniformLocation, camera.Fov);
+        GL.Uniform1(bouncesUniformLocation, bounces);
 
-        Info = $"ForwardDir: {camera.ForwardDirection}";
+        Info = $"Bounces: {bounces}, ForwardDir: {camera.ForwardDirection}";
     }
 
     ~RayTracer() {

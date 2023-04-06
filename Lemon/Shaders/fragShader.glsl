@@ -3,7 +3,9 @@
 uniform vec3 RayOrigin;
 uniform vec3 ForwardDir;
 uniform float FOV;
-const int Bounces = 4;
+uniform int Bounces;
+
+const vec3 skyColor = vec3(0.2, 0.2, 0.4);
 
 in vec2 Resolution;
 
@@ -104,13 +106,13 @@ hitPayload traceRay(vec3 rayDir, vec3 rayOrigin) {
 
 		// b^2 - 4ac
 		float discriminant = b * b - 4.0 * a * c;
-		if (discriminant < 0) {
+		if (discriminant < 0.0) {
 			continue;
 		}
 
 		// (-b +- sqrt(discriminant)) / 2a
 		float closestT = (-b - sqrt(discriminant)) / (2.0 * a);
-		if (closestT < 0) continue;
+		if (closestT < 0.0) continue;
 		if (closestT < hitDist) {
 			closestSphere = i;
 			hitDist = closestT;
@@ -132,16 +134,16 @@ void main() {
 	
 	// initiazlize spheres
 	spheres[0].position = vec3(0.0);
-	spheres[0].albedo = vec3(1.0);
+	spheres[0].albedo = vec3(0.7);
 	spheres[0].radius = 0.5;
 	spheres[0].null = false;
 
-	spheres[1].position = vec3(-1.0, 0.0, 0.0);
+	spheres[1].position = vec3(-0.5, 0.0, -1.0);
 	spheres[1].albedo = vec3(0.2, 0.2, 1.0);
 	spheres[1].radius = 0.2;
 	spheres[1].null = false;
 
-	spheres[2].position = vec3(2.0, 0.0, 0.0);
+	spheres[2].position = vec3(0.5, 0.0, -2.0);
 	spheres[2].albedo = vec3(1.0, 0.2, 0.2);
 	spheres[2].radius = 1;
 	spheres[2].null = false;
@@ -151,7 +153,6 @@ void main() {
 	for (int i = 0; i < Bounces; i++) {
 		hitPayload payload = traceRay(rayDir, rayOrigin);
 		if (payload.hitDistance < 0) {
-			vec3 skyColor = vec3(0.0, 0.0, 0.05);
 			color += skyColor * multiplier;
 			break;
 		}
