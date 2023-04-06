@@ -107,6 +107,6 @@ internal sealed class Renderer : GameWindow {
         rayTracer.OnUpdate((float)args.Time, mouseState, keyboardState, out CursorState cursorState);
         this.CursorState = cursorState;
 
-        this.Title = $"FPS: {1 / args.Time:F0} ({args.Time * 1000f:F0}ms)";
+        this.Title = $"FPS: {1 / args.Time:F0} ({args.Time * 1000f:F0}ms) | {rayTracer.Info}";
     }
 }

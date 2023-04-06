@@ -50,14 +50,21 @@ internal sealed class RayTracer : IDisposable {
 
         forwardDirUniformLocation = GL.GetUniformLocation(Handle, "ForwardDir");
         GL.Uniform3(forwardDirUniformLocation, camera.ForwardDirection);
+
+        fovUniformLocation = GL.GetUniformLocation(Handle, "FOV");
+        GL.Uniform1(fovUniformLocation, camera.Fov);
+
+        Info = string.Empty;
     }
 
     public int Handle { get; init; }
-    public string Info { get; set; }
+    public string Info { get; private set; }
 
     private readonly Camera camera;
+    private Vector3 LightDirection;
 
     private readonly int rayOriginUniformLocation, forwardDirUniformLocation;
+    private readonly int fovUniformLocation;
 
     private bool disposed = false;
 
@@ -66,6 +73,9 @@ internal sealed class RayTracer : IDisposable {
 
         GL.Uniform3(rayOriginUniformLocation, camera.Position);
         GL.Uniform3(forwardDirUniformLocation, camera.ForwardDirection);
+        GL.Uniform1(fovUniformLocation, camera.Fov);
+
+        Info = $"ForwardDir: {camera.ForwardDirection}";
     }
 
     ~RayTracer() {
