@@ -19,7 +19,6 @@ internal sealed class Renderer : GameWindow {
         this.CenterWindow();
     }
 
-    private Camera camera;
     private RayTracer rayTracer;
     private int vertexArrayHandle, vertexBufferHandle, indexBufferHandle;
 

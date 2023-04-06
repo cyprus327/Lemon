@@ -59,11 +59,11 @@ internal sealed class Camera {
         }
     }
 
-    public static float DegToRad(float deg) {
+    public float DegToRad(float deg) {
         return deg * MathF.PI / 180;
     }
 
-    public static Vector3 Rotate(Vector3 vector, float pitchDelta, float yawDelta) {
+    public Vector3 Rotate(Vector3 vector, float pitchDelta, float yawDelta) {
         float pitch = DegToRad(pitchDelta);
         float yaw = DegToRad(yawDelta);
 
@@ -73,7 +73,8 @@ internal sealed class Camera {
         Quaternion rotation = pitchRotation * yawRotation;
 
         Vector3 transformed = Vector3.Transform(vector, rotation);
-        transformed.Y = 0;
-        return transformed;
+        float y = vector.Y + pitchDelta * RotationSpeed / 10;
+        y = MathF.Min(0.4f, MathF.Max(y, -0.4f));
+        return new Vector3(transformed.X, y, transformed.Z);
     }
 }

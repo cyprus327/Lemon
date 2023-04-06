@@ -58,6 +58,9 @@ internal sealed class RayTracer : IDisposable {
         bouncesUniformLocation = GL.GetUniformLocation(Handle, "Bounces");
         GL.Uniform1(bouncesUniformLocation, bounces);
 
+        timeUniformLocation = GL.GetUniformLocation(Handle, "time");
+        GL.Uniform1(timeUniformLocation, time);
+
         Info = string.Empty;
     }
 
@@ -65,14 +68,17 @@ internal sealed class RayTracer : IDisposable {
     public string Info { get; private set; }
 
     private readonly Camera camera;
-    private int bounces = 4;
+    private int bounces = 16;
+    private float time = 0f;
 
     private readonly int rayOriginUniformLocation, forwardDirUniformLocation;
-    private readonly int fovUniformLocation, bouncesUniformLocation;
+    private readonly int fovUniformLocation, bouncesUniformLocation, timeUniformLocation;
 
     private bool disposed = false;
 
     public void OnUpdate(float deltaTime, MouseState mouseState, KeyboardState keyboardState, out CursorState cursorState) {
+        if (!keyboardState.IsKeyDown(Keys.Tab)) time += deltaTime;
+
         camera.OnUpdate(deltaTime, mouseState, keyboardState, out cursorState);
 
         if (keyboardState.IsKeyReleased(Keys.R))
@@ -86,6 +92,7 @@ internal sealed class RayTracer : IDisposable {
         GL.Uniform3(forwardDirUniformLocation, camera.ForwardDirection);
         GL.Uniform1(fovUniformLocation, camera.Fov);
         GL.Uniform1(bouncesUniformLocation, bounces);
+        GL.Uniform1(timeUniformLocation, time);
 
         Info = $"Bounces: {bounces}, ForwardDir: {camera.ForwardDirection}";
     }
