@@ -144,25 +144,24 @@ uint hash( uint x ) {
     return x;
 }
 
-uint hash( uvec2 v ) { return hash( v.x ^ hash(v.y)                         ); }
-uint hash( uvec3 v ) { return hash( v.x ^ hash(v.y) ^ hash(v.z)             ); }
-uint hash( uvec4 v ) { return hash( v.x ^ hash(v.y) ^ hash(v.z) ^ hash(v.w) ); }
+uint hash(uvec2 v) { return hash(v.x ^ hash(v.y)                        ); }
+uint hash(uvec3 v) { return hash(v.x ^ hash(v.y) ^ hash(v.z)            ); }
+uint hash(uvec4 v) { return hash(v.x ^ hash(v.y) ^ hash(v.z) ^ hash(v.w)); }
 
 float floatConstruct( uint m ) {
     const uint ieeeMantissa = 0x007FFFFFu; // binary32 mantissa bitmask
     const uint ieeeOne      = 0x3F800000u; // 1.0 in IEEE binary32
 
-    m &= ieeeMantissa;                     // keep only mantissa bits (fractional part)
+    m &= ieeeMantissa;                     // keep only mantissa bits
     m |= ieeeOne;                          // add fractional part to 1.0
 
-    float  f = uintBitsToFloat(m);
-    return f - 1.0;                        // 0 to 1 range
+    return uintBitsToFloat(m) - 1.0;       // 0 to 1 range
 }
 
-float random( float x ) { return floatConstruct(hash(floatBitsToUint(x))); }
-float random( vec2  v ) { return floatConstruct(hash(floatBitsToUint(v))); }
-float random( vec3  v ) { return floatConstruct(hash(floatBitsToUint(v))); }
-float random( vec4  v ) { return floatConstruct(hash(floatBitsToUint(v))); }
+float random(float x) { return floatConstruct(hash(floatBitsToUint(x))); }
+float random(vec2  v) { return floatConstruct(hash(floatBitsToUint(v))); }
+float random(vec3  v) { return floatConstruct(hash(floatBitsToUint(v))); }
+float random(vec4  v) { return floatConstruct(hash(floatBitsToUint(v))); }
 
 void main() {
 	vec2 uv = gl_FragCoord.xy / Resolution.xy * 2.0 - 1.0;
@@ -175,21 +174,21 @@ void main() {
 	spheres[0].radius = 1000.0;
 	spheres[0].materialIndex = 0;
 	materials[0].albedo = vec3(0.1, 0.5, 0.8);
-	materials[0].roughness = 0.1;
+	materials[0].roughness = 0.03;
 	materials[0].metallic = 0.0;
 	
 	spheres[1].position = vec3(-0.8, -0.3, 0.0);
 	spheres[1].radius = 0.5;
 	spheres[1].materialIndex = 1;
 	materials[1].albedo = vec3(0.2, 1.0, 0.2);
-	materials[1].roughness = 0.1;
+	materials[1].roughness = 0.5;
 	materials[1].metallic = 0.0;
 
 	spheres[2].position = vec3(0.8, 0.0, 0.0);
 	spheres[2].radius = 1.0;
 	spheres[2].materialIndex = 2;
 	materials[2].albedo = vec3(1.0, 0.1, 0.1);
-	materials[2].roughness = 0.1;
+	materials[2].roughness = 0.07;
 	materials[2].metallic = 0.0;
 	
 	vec3 color = vec3(0.0);
@@ -212,7 +211,7 @@ void main() {
 		sphereColor *= lightIntensity;
 		color += sphereColor * multiplier;
 
-		multiplier *= 0.55;
+		multiplier *= 0.5;
 
 		vec3 rand = vec3(
 			random(vec3(gl_FragCoord.xy, time)) * 2.0 - 1.0,

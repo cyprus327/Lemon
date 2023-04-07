@@ -20,7 +20,12 @@ internal sealed class Camera {
     public Vector3 Position { get; private set; }
     public float RotationSpeed { get; set; } = 0.1f;
 
-    public void OnUpdate(float deltaTime, MouseState mouseState, KeyboardState keyboardState, out CursorState cursorState) {
+    public bool OnUpdate(float deltaTime, MouseState mouseState, KeyboardState keyboardState, out CursorState cursorState) {
+        if (!mouseState.IsButtonDown(MouseButton.Right)) {
+            cursorState = CursorState.Normal;
+            return false;
+        }
+        
         Vector3 upDir = new Vector3(0f, 1f, 0f);
         Vector3 rightDir = Vector3.Cross(ForwardDirection, upDir);
 
@@ -43,13 +48,6 @@ internal sealed class Camera {
         else if (keyboardState.IsKeyReleased(Keys.X))
             Fov += 3;
 
-        if (!mouseState.IsButtonDown(MouseButton.Right)) {
-            cursorState = CursorState.Normal;
-            return;
-        }
-
-        cursorState = CursorState.Grabbed;
-
         Vector2 delta = mouseState.Delta;
         if (delta.X != 0f || delta.Y != 0f) {
             float pitchDelta = -delta.Y * RotationSpeed;
@@ -57,6 +55,9 @@ internal sealed class Camera {
 
             ForwardDirection = Rotate(ForwardDirection, pitchDelta, yawDelta);
         }
+
+        cursorState = CursorState.Grabbed;
+        return true;
     }
 
     public float DegToRad(float deg) {

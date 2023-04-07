@@ -17,10 +17,15 @@ internal sealed class Renderer : GameWindow {
             }
         ) {
         this.CenterWindow();
+
+        string vertShaderCode = Reader.ReadToString("../../../Shaders/vertShader.glsl");
+        string fragShaderCode = Reader.ReadToString("../../../Shaders/fragShader.glsl");
+        rayTracer = new RayTracer(vertShaderCode, fragShaderCode, this.ClientSize.X, this.ClientSize.Y);
     }
 
-    private RayTracer rayTracer;
+    private readonly RayTracer rayTracer;
     private int vertexArrayHandle, vertexBufferHandle, indexBufferHandle;
+    private int fbo, texture;
 
     protected override void OnLoad() {
         base.OnLoad();
@@ -57,10 +62,6 @@ internal sealed class Renderer : GameWindow {
         GL.EnableVertexAttribArray(0);
 
         GL.BindVertexArray(0);
-
-        string vertShaderCode = Reader.ReadToString("../../../Shaders/vertShader.glsl");
-        string fragShaderCode = Reader.ReadToString("../../../Shaders/fragShader.glsl");
-        rayTracer = new RayTracer(vertShaderCode, fragShaderCode, this.ClientSize.X, this.ClientSize.Y);
     }
 
     protected override void OnUnload() {
@@ -87,13 +88,19 @@ internal sealed class Renderer : GameWindow {
     protected override void OnRenderFrame(FrameEventArgs args) {
         base.OnRenderFrame(args);
 
-        GL.Clear(ClearBufferMask.ColorBufferBit);
+        if (rayTracer.FrameCount == 0)
+            GL.Clear(ClearBufferMask.ColorBufferBit);
 
         GL.UseProgram(rayTracer.Handle);
         GL.BindVertexArray(vertexArrayHandle);
         GL.BindBuffer(BufferTarget.ElementArrayBuffer, indexBufferHandle);
         GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
 
+        //GL.Enable(EnableCap.Blend);
+        //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        //GL.BlendEquation(BlendEquationMode.FuncAdd);
+
+        rayTracer.FrameCount++;
         this.SwapBuffers();
     }
 

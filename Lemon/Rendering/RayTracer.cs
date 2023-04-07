@@ -66,6 +66,7 @@ internal sealed class RayTracer : IDisposable {
 
     public int Handle { get; init; }
     public string Info { get; private set; }
+    public int FrameCount { get; set; } = 0;
 
     private readonly Camera camera;
     private int bounces = 16;
@@ -79,7 +80,8 @@ internal sealed class RayTracer : IDisposable {
     public void OnUpdate(float deltaTime, MouseState mouseState, KeyboardState keyboardState, out CursorState cursorState) {
         if (!keyboardState.IsKeyDown(Keys.Tab)) time += deltaTime;
 
-        camera.OnUpdate(deltaTime, mouseState, keyboardState, out cursorState);
+        if (camera.OnUpdate(deltaTime, mouseState, keyboardState, out cursorState)) // if the camera moved
+            FrameCount = 0;
 
         if (keyboardState.IsKeyReleased(Keys.R))
             bounces--;
