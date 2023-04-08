@@ -71,8 +71,8 @@ internal sealed class RayTracer : IDisposable {
     public string Info { get; private set; }
 
     private readonly Camera camera;
-    private int bounces = 16;
-    private int numSamples = 8;
+    private int bounces = 8;
+    private int numSamples = 50;
     private float time = 0f;
 
     private readonly int timeUniformLocation;
@@ -94,10 +94,10 @@ internal sealed class RayTracer : IDisposable {
         bounces = Math.Max(1, bounces);
 
         if (keyboardState.IsKeyReleased(Keys.R))
-            numSamples--;
+            numSamples -= 10;
         else if (keyboardState.IsKeyReleased(Keys.T))
-            numSamples++;
-        numSamples = Math.Max(1, numSamples);
+            numSamples += 10;
+        numSamples = Math.Max(0, numSamples);
 
         GL.Uniform1(timeUniformLocation, time);
         GL.Uniform3(rayOriginUniformLocation, camera.Position);
@@ -106,7 +106,7 @@ internal sealed class RayTracer : IDisposable {
         GL.Uniform1(bouncesUniformLocation, bounces);
         GL.Uniform1(numSamplesUniformLocation, moved ? 1 : numSamples);
 
-        Info = $"Samples: {(moved ? 1 : numSamples)}, Bounces: {bounces}";
+        Info = $"Samples: {(moved ? 1 : numSamples)}, Strata: {3}, Bounces: {bounces}";
     }
 
     ~RayTracer() {

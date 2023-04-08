@@ -7,8 +7,11 @@ uniform int Bounces;
 uniform int NumSamples;
 uniform float Time;
 
+const int STRATA = 3;
 const float PI = 3.14159265;
 const vec3 SKY_COLOR = vec3(0.7, 0.7, 1.0);
+const int NUM_SPHERES = 4;
+const float AMBIENT_LIGHT = 0.25;
 
 in vec2 Resolution;
 
@@ -18,6 +21,8 @@ struct material {
 	vec3 albedo;
 	float roughness;
 	float metallic;
+	float specular;
+	float ambient;
 };
 
 struct sphere {
@@ -35,7 +40,7 @@ struct hitPayload {
 	int objectIndex;
 };
 
-sphere spheres[4];
+sphere spheres[NUM_SPHERES];
 material materials[4];
 
 mat4 lookAt(vec3 eye, vec3 center, vec3 up) {
@@ -100,7 +105,7 @@ hitPayload closestHit(vec3 rayDir, vec3 rayOrigin, float hitDist, int objectInde
 hitPayload traceRay(vec3 rayDir, vec3 rayOrigin) {
 	int closestSphere = -1;
 	float hitDist = 1e38;
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < NUM_SPHERES; i++) {
 		// (bx^2 + by^2)t^2 + 2(axbx + ayby)t + (ax^2 + ay^2 - r^2) = 0
 
 		// a = ray origin
@@ -175,46 +180,57 @@ void main() {
 	spheres[0].position = vec3(0.0, -1001.0, 0.0);
 	spheres[0].radius = 1000.0;
 	spheres[0].materialIndex = 0;
-	materials[0].albedo = vec3(0.1, 0.1, 0.6);
-	materials[0].roughness = 0.8;
-	materials[0].metallic = 0.0;
+	materials[0].albedo = vec3(0.8, 0.8, 0.8);
+	materials[0].roughness = 0.7;
+	materials[0].metallic = 0.01;
+	materials[0].specular = 0.001;
+	materials[0].ambient = 0.25;
 	
 	spheres[1].position = vec3(-0.8, -0.2, 0.0);
 	spheres[1].radius = 0.6;
 	spheres[1].materialIndex = 1;
-	materials[1].albedo = vec3(0.8, 0.8, 0.8);
-	materials[1].roughness = 0.5;
-	materials[1].metallic = 0.0;
+	materials[1].albedo = vec3(0.2, 0.2, 0.8);
+	materials[1].roughness = 0.1;
+	materials[1].metallic = 0.5;
+	materials[1].specular = 0.1;
+	materials[1].ambient = 0.25;
 
 	spheres[2].position = vec3(0.6, -0.1, 0.0);
 	spheres[2].radius = 0.5;
 	spheres[2].materialIndex = 2;
-	materials[2].albedo = vec3(0.8, 0.8, 0.8);
-	materials[2].roughness = 0.2;
-	materials[2].metallic = 0.0;
-
+	materials[2].albedo = vec3(0.2, 0.8, 0.2);
+	materials[2].roughness = 0.1;
+	materials[2].metallic = 0.5;
+	materials[2].specular = 0.55;
+	materials[2].ambient = 0.35;
+			  
 	spheres[3].position = vec3(0.0, 1.0, -0.8);
 	spheres[3].radius = 0.9;
 	spheres[3].materialIndex = 3;
-	materials[3].albedo = vec3(0.8, 0.8, 0.8);
-	materials[3].roughness = 0.01;
-	materials[3].metallic = 0.0;
+	materials[3].albedo = vec3(0.8, 0.2, 0.2);
+	materials[3].roughness = 0.1;
+	materials[3].metallic = 0.01;
+	materials[3].specular = 0.55;
+	materials[3].ambient = 0.4;
+	
+	// currently the only light source
+	vec3 lightPos = vec3(2.0, 3.0, 4.0);
+	vec3 lightColor = vec3(1.0, 1.0, 1.0);
+	float lightRadius = 10.0;
 	
 	vec3 totalCol = vec3(0.0);
 
-	int strata = 4;
 	for (int s = 0; s < NumSamples; s++) {
 		vec3 sampleCol = vec3(0.0);
 
-		for (int x = 0; x < strata; x++) {
-			for (int y = 0; y < strata; y++) {
+		for (int y = 0; y < STRATA; y++) {
+			for (int x = 0; x < STRATA; x++) {
 				// calculate stratum position
-				float xOffset = float(x) / float(strata);
-				float yOffset = float(y) / float(strata);
+				float xOffset = float(x) / float(STRATA);
+				float yOffset = float(y) / float(STRATA);
 				vec2 stratumPos = gl_FragCoord.xy + vec2(xOffset, yOffset);
 
 				// calcualte ray direction and origin
-				vec2 ndcPos = (stratumPos / Resolution.xy) * 2.0 - 1.0;
 				rayDir = vec3(inverseView(rayOrigin, ForwardDir) * vec4(normalize(vec3(target) / target.w), 0.0));
 				rayOrigin = RayOrigin;
 
@@ -228,19 +244,29 @@ void main() {
 					}
 
 					// calculate lighting and material
-					vec3 lightDir = vec3(-0.1, -1.0, -1.0);
-					lightDir = normalize(lightDir);
-
-					float lightIntensity = max(0.0, dot(payload.worldNormal, -lightDir));
-
 					material mat = materials[spheres[payload.objectIndex].materialIndex];
+					
+					vec3 toLight = lightPos - payload.worldPosition;
+					float dist = length(toLight);
+					vec3 lightDir = toLight / dist;
+					float attenuation = 1.0 / (1.0 + lightRadius * dist);
 
-					vec3 sphereCol = mat.albedo * lightIntensity;
+					float lightIntensity = max(0.0, dot(payload.worldNormal, lightDir));
+					lightIntensity = attenuation * lightIntensity + mat.ambient;
+
+					vec3 diffuse = mat.albedo * lightColor * lightIntensity;
+
+					vec3 viewDir = -normalize(rayDir);
+					vec3 reflectDir = reflect(-lightDir, payload.worldNormal);
+					float specular = pow(max(dot(viewDir, reflectDir), 0.0), mat.specular);
+
+					vec3 specularColor = mat.specular * lightColor * specular;
+
+					vec3 sphereCol = diffuse + specularColor;
 					sampleCol += sphereCol * multiplier;
 
-					// update multiplier and ray direction
+					// update multiplier 
 					multiplier *= 0.5;
-
 					vec3 rand = vec3(
 						random(vec3(stratumPos.xy, Time + float(s) - float(i))),
 						random(vec3(float(s) - Time, stratumPos.xy + float(i))),
@@ -252,7 +278,7 @@ void main() {
 			}
 		}
 
-		totalCol += sampleCol / float(strata * strata);
+		totalCol += sampleCol / float(STRATA * STRATA);
 	}
 
 	vec3 color = totalCol / float(NumSamples);
