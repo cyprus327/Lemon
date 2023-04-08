@@ -4,9 +4,11 @@ uniform vec3 RayOrigin;
 uniform vec3 ForwardDir;
 uniform float FOV;
 uniform int Bounces;
-uniform float time;
+uniform int NumSamples;
+uniform float Time;
 
-const vec3 skyColor = vec3(0.6, 0.6, 1.0);
+const float PI = 3.14159265;
+const vec3 SKY_COLOR = vec3(0.7, 0.7, 1.0);
 
 in vec2 Resolution;
 
@@ -33,8 +35,8 @@ struct hitPayload {
 	int objectIndex;
 };
 
-sphere spheres[3];
-material materials[3];
+sphere spheres[4];
+material materials[4];
 
 mat4 lookAt(vec3 eye, vec3 center, vec3 up) {
     vec3 f = normalize(center - eye);
@@ -98,7 +100,7 @@ hitPayload closestHit(vec3 rayDir, vec3 rayOrigin, float hitDist, int objectInde
 hitPayload traceRay(vec3 rayDir, vec3 rayOrigin) {
 	int closestSphere = -1;
 	float hitDist = 1e38;
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 4; i++) {
 		// (bx^2 + by^2)t^2 + 2(axbx + ayby)t + (ax^2 + ay^2 - r^2) = 0
 
 		// a = ray origin
@@ -135,12 +137,12 @@ hitPayload traceRay(vec3 rayDir, vec3 rayOrigin) {
 }
 
 // pseudorandom generation from https://stackoverflow.com/users/2434130/spatial
-uint hash( uint x ) {
-    x += ( x << 10u );
-    x ^= ( x >>  6u );
-    x += ( x <<  3u );
-    x ^= ( x >> 11u );
-    x += ( x << 15u );
+uint hash(uint x) {
+    x += (x << 10u);
+    x ^= (x >>  6u);
+    x += (x <<  3u);
+    x ^= (x >> 11u);
+    x += (x << 15u);
     return x;
 }
 
@@ -148,14 +150,14 @@ uint hash(uvec2 v) { return hash(v.x ^ hash(v.y)                        ); }
 uint hash(uvec3 v) { return hash(v.x ^ hash(v.y) ^ hash(v.z)            ); }
 uint hash(uvec4 v) { return hash(v.x ^ hash(v.y) ^ hash(v.z) ^ hash(v.w)); }
 
-float floatConstruct( uint m ) {
-    const uint ieeeMantissa = 0x007FFFFFu; // binary32 mantissa bitmask
-    const uint ieeeOne      = 0x3F800000u; // 1.0 in IEEE binary32
+float floatConstruct(uint m) {
+	//   binary32 mantissa bitmask
+    m &= 0x007FFFFFu;  // keep only mantissa bits
+	//   1.0 in IEEE binary32
+    m |= 0x3F800000u;  // add fractional part to 1.0
 
-    m &= ieeeMantissa;                     // keep only mantissa bits
-    m |= ieeeOne;                          // add fractional part to 1.0
-
-    return uintBitsToFloat(m) - 1.0;       // 0 to 1 range
+	// 0 to 1 range
+    return uintBitsToFloat(m) - 1.0;       
 }
 
 float random(float x) { return floatConstruct(hash(floatBitsToUint(x))); }
@@ -168,62 +170,92 @@ void main() {
 	vec4 target = inverseProjection(FOV, 0.1, 100.0) * vec4(uv.xy, 1.0, 1.0);
 	vec3 rayDir = vec3(inverseView(RayOrigin, ForwardDir) * vec4(normalize(vec3(target) / target.w), 0.0));
 	vec3 rayOrigin = RayOrigin;
-	
+
 	// 0 == floor sphere, 1 and 2 == the floating spheres
 	spheres[0].position = vec3(0.0, -1001.0, 0.0);
 	spheres[0].radius = 1000.0;
 	spheres[0].materialIndex = 0;
-	materials[0].albedo = vec3(0.1, 0.5, 0.8);
-	materials[0].roughness = 0.03;
+	materials[0].albedo = vec3(0.1, 0.1, 0.6);
+	materials[0].roughness = 0.8;
 	materials[0].metallic = 0.0;
 	
-	spheres[1].position = vec3(-0.8, -0.3, 0.0);
-	spheres[1].radius = 0.5;
+	spheres[1].position = vec3(-0.8, -0.2, 0.0);
+	spheres[1].radius = 0.6;
 	spheres[1].materialIndex = 1;
-	materials[1].albedo = vec3(0.2, 1.0, 0.2);
+	materials[1].albedo = vec3(0.8, 0.8, 0.8);
 	materials[1].roughness = 0.5;
 	materials[1].metallic = 0.0;
 
-	spheres[2].position = vec3(0.8, 0.0, 0.0);
-	spheres[2].radius = 1.0;
+	spheres[2].position = vec3(0.6, -0.1, 0.0);
+	spheres[2].radius = 0.5;
 	spheres[2].materialIndex = 2;
-	materials[2].albedo = vec3(1.0, 0.1, 0.1);
-	materials[2].roughness = 0.07;
+	materials[2].albedo = vec3(0.8, 0.8, 0.8);
+	materials[2].roughness = 0.2;
 	materials[2].metallic = 0.0;
+
+	spheres[3].position = vec3(0.0, 1.0, -0.8);
+	spheres[3].radius = 0.9;
+	spheres[3].materialIndex = 3;
+	materials[3].albedo = vec3(0.8, 0.8, 0.8);
+	materials[3].roughness = 0.01;
+	materials[3].metallic = 0.0;
 	
-	vec3 color = vec3(0.0);
-	float multiplier = 1.0;
-	for (int i = 0; i < Bounces; i++) {
-		hitPayload payload = traceRay(rayDir, rayOrigin);
-		if (payload.hitDistance < 0.0) {
-			color += skyColor * multiplier;
-			break;
+	vec3 totalCol = vec3(0.0);
+
+	int strata = 4;
+	for (int s = 0; s < NumSamples; s++) {
+		vec3 sampleCol = vec3(0.0);
+
+		for (int x = 0; x < strata; x++) {
+			for (int y = 0; y < strata; y++) {
+				// calculate stratum position
+				float xOffset = float(x) / float(strata);
+				float yOffset = float(y) / float(strata);
+				vec2 stratumPos = gl_FragCoord.xy + vec2(xOffset, yOffset);
+
+				// calcualte ray direction and origin
+				vec2 ndcPos = (stratumPos / Resolution.xy) * 2.0 - 1.0;
+				rayDir = vec3(inverseView(rayOrigin, ForwardDir) * vec4(normalize(vec3(target) / target.w), 0.0));
+				rayOrigin = RayOrigin;
+
+				// trace the ray
+				float multiplier = 1.0;
+				for (int i = 0; i < Bounces; i++) {
+					hitPayload payload = traceRay(rayDir, rayOrigin);
+					if (payload.hitDistance < 0.0) {
+						sampleCol += SKY_COLOR * multiplier;
+						break;
+					}
+
+					// calculate lighting and material
+					vec3 lightDir = vec3(-0.1, -1.0, -1.0);
+					lightDir = normalize(lightDir);
+
+					float lightIntensity = max(0.0, dot(payload.worldNormal, -lightDir));
+
+					material mat = materials[spheres[payload.objectIndex].materialIndex];
+
+					vec3 sphereCol = mat.albedo * lightIntensity;
+					sampleCol += sphereCol * multiplier;
+
+					// update multiplier and ray direction
+					multiplier *= 0.5;
+
+					vec3 rand = vec3(
+						random(vec3(stratumPos.xy, Time + float(s) - float(i))),
+						random(vec3(float(s) - Time, stratumPos.xy + float(i))),
+						random(vec3(float(i) + stratumPos.yx, Time + float(s)))
+					);
+					rayOrigin = payload.worldPosition + payload.worldNormal * 0.0001;
+					rayDir = reflect(rayDir, payload.worldNormal + mat.roughness * rand);
+				}
+			}
 		}
 
-		vec3 lightDir = vec3(-0.1, -1.0, -1.0);
-		lightDir = normalize(lightDir);
-
-		float lightIntensity = max(0.0, dot(payload.worldNormal, -lightDir));
-
-		material mat = materials[spheres[payload.objectIndex].materialIndex];
-
-		vec3 sphereColor = mat.albedo;
-		sphereColor *= lightIntensity;
-		color += sphereColor * multiplier;
-
-		multiplier *= 0.5;
-
-		vec3 rand = vec3(
-			random(vec3(gl_FragCoord.xy, time)) * 2.0 - 1.0,
-			random(vec3(time, gl_FragCoord.xy)) * 2.0 - 1.0,
-			random(vec3(gl_FragCoord.yx, time)) * 2.0 - 1.0
-		);
-		rayOrigin = payload.worldPosition + payload.worldNormal * 0.0001;
-		rayDir = reflect(
-			rayDir, 
-			payload.worldNormal + mat.roughness * rand
-		);
+		totalCol += sampleCol / float(strata * strata);
 	}
+
+	vec3 color = totalCol / float(NumSamples);
 
 	fragColor = vec4(color, 1.0);
 }

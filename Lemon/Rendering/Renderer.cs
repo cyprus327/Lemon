@@ -25,7 +25,6 @@ internal sealed class Renderer : GameWindow {
 
     private readonly RayTracer rayTracer;
     private int vertexArrayHandle, vertexBufferHandle, indexBufferHandle;
-    private int fbo, texture;
 
     protected override void OnLoad() {
         base.OnLoad();
@@ -81,26 +80,20 @@ internal sealed class Renderer : GameWindow {
 
     protected override void OnResize(ResizeEventArgs e) {
         base.OnResize(e);
-
+        
         GL.Viewport(0, 0, e.Width, e.Height);
     }
 
     protected override void OnRenderFrame(FrameEventArgs args) {
         base.OnRenderFrame(args);
 
-        if (rayTracer.FrameCount == 0)
-            GL.Clear(ClearBufferMask.ColorBufferBit);
+        GL.Clear(ClearBufferMask.ColorBufferBit);
 
         GL.UseProgram(rayTracer.Handle);
         GL.BindVertexArray(vertexArrayHandle);
         GL.BindBuffer(BufferTarget.ElementArrayBuffer, indexBufferHandle);
         GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
 
-        //GL.Enable(EnableCap.Blend);
-        //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-        //GL.BlendEquation(BlendEquationMode.FuncAdd);
-
-        rayTracer.FrameCount++;
         this.SwapBuffers();
     }
 

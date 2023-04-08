@@ -58,45 +58,55 @@ internal sealed class RayTracer : IDisposable {
         bouncesUniformLocation = GL.GetUniformLocation(Handle, "Bounces");
         GL.Uniform1(bouncesUniformLocation, bounces);
 
-        timeUniformLocation = GL.GetUniformLocation(Handle, "time");
+        timeUniformLocation = GL.GetUniformLocation(Handle, "Time");
         GL.Uniform1(timeUniformLocation, time);
+
+        numSamplesUniformLocation = GL.GetUniformLocation(Handle, "NumSamples");
+        GL.Uniform1(numSamplesUniformLocation, numSamples);
 
         Info = string.Empty;
     }
 
     public int Handle { get; init; }
     public string Info { get; private set; }
-    public int FrameCount { get; set; } = 0;
 
     private readonly Camera camera;
     private int bounces = 16;
+    private int numSamples = 8;
     private float time = 0f;
 
-    private readonly int rayOriginUniformLocation, forwardDirUniformLocation;
-    private readonly int fovUniformLocation, bouncesUniformLocation, timeUniformLocation;
+    private readonly int timeUniformLocation;
+    private readonly int rayOriginUniformLocation, forwardDirUniformLocation, fovUniformLocation;
+    private readonly int bouncesUniformLocation, numSamplesUniformLocation;
 
     private bool disposed = false;
 
     public void OnUpdate(float deltaTime, MouseState mouseState, KeyboardState keyboardState, out CursorState cursorState) {
         if (!keyboardState.IsKeyDown(Keys.Tab)) time += deltaTime;
 
-        if (camera.OnUpdate(deltaTime, mouseState, keyboardState, out cursorState)) // if the camera moved
-            FrameCount = 0;
+        bool moved = false;
+        if (camera.OnUpdate(deltaTime, mouseState, keyboardState, out cursorState)) moved = true;
 
-        if (keyboardState.IsKeyReleased(Keys.R))
+        if (keyboardState.IsKeyReleased(Keys.F))
             bounces--;
-        else if (keyboardState.IsKeyReleased(Keys.T))
+        else if (keyboardState.IsKeyReleased(Keys.G))
             bounces++;
-
         bounces = Math.Max(1, bounces);
 
+        if (keyboardState.IsKeyReleased(Keys.R))
+            numSamples--;
+        else if (keyboardState.IsKeyReleased(Keys.T))
+            numSamples++;
+        numSamples = Math.Max(1, numSamples);
+
+        GL.Uniform1(timeUniformLocation, time);
         GL.Uniform3(rayOriginUniformLocation, camera.Position);
         GL.Uniform3(forwardDirUniformLocation, camera.ForwardDirection);
         GL.Uniform1(fovUniformLocation, camera.Fov);
         GL.Uniform1(bouncesUniformLocation, bounces);
-        GL.Uniform1(timeUniformLocation, time);
+        GL.Uniform1(numSamplesUniformLocation, moved ? 1 : numSamples);
 
-        Info = $"Bounces: {bounces}, ForwardDir: {camera.ForwardDirection}";
+        Info = $"Samples: {(moved ? 1 : numSamples)}, Bounces: {bounces}";
     }
 
     ~RayTracer() {
