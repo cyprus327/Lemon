@@ -4,14 +4,14 @@ uniform vec3 RayOrigin;
 uniform vec3 ForwardDir;
 uniform float FOV;
 uniform int Bounces;
-uniform int NumSamples;
+uniform int Samples;
 uniform float Time;
 
 const int STRATA = 3;
 const float PI = 3.14159265;
 const vec3 SKY_COLOR = vec3(0.7, 0.7, 1.0);
 const int NUM_SPHERES = 4;
-const float AMBIENT_LIGHT = 0.25;
+const float GAMMA = 1.2;
 
 in vec2 Resolution;
 
@@ -116,17 +116,17 @@ hitPayload traceRay(vec3 rayDir, vec3 rayOrigin) {
 		vec3 origin = rayOrigin - spheres[i].position;
 
 		float a = dot(rayDir, rayDir);
-		float b = 2.0 * dot(origin, rayDir);
+		float b = dot(origin, rayDir);
 		float c = dot(origin, origin) - spheres[i].radius * spheres[i].radius;
 
 		// b^2 - 4ac
-		float discriminant = b * b - 4.0 * a * c;
+		float discriminant = b * b - a * c;
 		if (discriminant < 0.0) {
 			continue;
 		}
 
 		// (-b +- sqrt(discriminant)) / 2a
-		float closestT = (-b - sqrt(discriminant)) / (2.0 * a);
+		float closestT = (-b - sqrt(discriminant)) / a;
 		if (closestT < 0.0) continue;
 		if (closestT < hitDist) {
 			closestSphere = i;
@@ -176,15 +176,14 @@ void main() {
 	vec3 rayDir = vec3(inverseView(RayOrigin, ForwardDir) * vec4(normalize(vec3(target) / target.w), 0.0));
 	vec3 rayOrigin = RayOrigin;
 
-	// 0 == floor sphere, 1 and 2 == the floating spheres
 	spheres[0].position = vec3(0.0, -1001.0, 0.0);
 	spheres[0].radius = 1000.0;
 	spheres[0].materialIndex = 0;
 	materials[0].albedo = vec3(0.8, 0.8, 0.8);
-	materials[0].roughness = 0.7;
+	materials[0].roughness = 0.01;
 	materials[0].metallic = 0.01;
-	materials[0].specular = 0.001;
-	materials[0].ambient = 0.25;
+	materials[0].specular = 1.0;
+	materials[0].ambient = 0.0;
 	
 	spheres[1].position = vec3(-0.8, -0.2, 0.0);
 	spheres[1].radius = 0.6;
@@ -199,9 +198,9 @@ void main() {
 	spheres[2].radius = 0.5;
 	spheres[2].materialIndex = 2;
 	materials[2].albedo = vec3(0.2, 0.8, 0.2);
-	materials[2].roughness = 0.1;
-	materials[2].metallic = 0.5;
-	materials[2].specular = 0.55;
+	materials[2].roughness = 0.01;
+	materials[2].metallic = 0.0;
+	materials[2].specular = 1.0;
 	materials[2].ambient = 0.35;
 			  
 	spheres[3].position = vec3(0.0, 1.0, -0.8);
@@ -216,11 +215,11 @@ void main() {
 	// currently the only light source
 	vec3 lightPos = vec3(2.0, 3.0, 4.0);
 	vec3 lightColor = vec3(1.0, 1.0, 1.0);
-	float lightRadius = 10.0;
+	float lightRadius = 1.0;
 	
 	vec3 totalCol = vec3(0.0);
 
-	for (int s = 0; s < NumSamples; s++) {
+	for (int s = 0; s < Samples; s++) {
 		vec3 sampleCol = vec3(0.0);
 
 		for (int y = 0; y < STRATA; y++) {
@@ -281,7 +280,10 @@ void main() {
 		totalCol += sampleCol / float(STRATA * STRATA);
 	}
 
-	vec3 color = totalCol / float(NumSamples);
+	vec3 color = totalCol / float(Samples);
+
+	// gamma correct
+	color = pow(color, vec3(1.0 / GAMMA));
 
 	fragColor = vec4(color, 1.0);
 }

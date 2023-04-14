@@ -61,8 +61,11 @@ internal sealed class RayTracer : IDisposable {
         timeUniformLocation = GL.GetUniformLocation(Handle, "Time");
         GL.Uniform1(timeUniformLocation, time);
 
-        numSamplesUniformLocation = GL.GetUniformLocation(Handle, "NumSamples");
-        GL.Uniform1(numSamplesUniformLocation, numSamples);
+        samplesUniformLocation = GL.GetUniformLocation(Handle, "Samples");
+        GL.Uniform1(samplesUniformLocation, samples);
+
+        mouseUniformLocation = GL.GetUniformLocation(Handle, "Mouse");
+        GL.Uniform2(mouseUniformLocation, mouseX, mouseY);
 
         Info = string.Empty;
     }
@@ -71,18 +74,24 @@ internal sealed class RayTracer : IDisposable {
     public string Info { get; private set; }
 
     private readonly Camera camera;
-    private int bounces = 8;
-    private int numSamples = 50;
+    private int bounces = 14;
+    private int samples = 100;
     private float time = 0f;
+
+    private float mouseX = 0f, mouseY = 0f;
 
     private readonly int timeUniformLocation;
     private readonly int rayOriginUniformLocation, forwardDirUniformLocation, fovUniformLocation;
-    private readonly int bouncesUniformLocation, numSamplesUniformLocation;
+    private readonly int bouncesUniformLocation, samplesUniformLocation;
+    private readonly int mouseUniformLocation;
 
     private bool disposed = false;
 
     public void OnUpdate(float deltaTime, MouseState mouseState, KeyboardState keyboardState, out CursorState cursorState) {
         if (!keyboardState.IsKeyDown(Keys.Tab)) time += deltaTime;
+
+        mouseX = mouseState.X;
+        mouseY = mouseState.Y;
 
         bool moved = false;
         if (camera.OnUpdate(deltaTime, mouseState, keyboardState, out cursorState)) moved = true;
@@ -94,19 +103,20 @@ internal sealed class RayTracer : IDisposable {
         bounces = Math.Max(1, bounces);
 
         if (keyboardState.IsKeyReleased(Keys.R))
-            numSamples -= 10;
+            samples -= 10;
         else if (keyboardState.IsKeyReleased(Keys.T))
-            numSamples += 10;
-        numSamples = Math.Max(0, numSamples);
+            samples += 10;
+        samples = Math.Max(0, samples);
 
         GL.Uniform1(timeUniformLocation, time);
         GL.Uniform3(rayOriginUniformLocation, camera.Position);
         GL.Uniform3(forwardDirUniformLocation, camera.ForwardDirection);
         GL.Uniform1(fovUniformLocation, camera.Fov);
         GL.Uniform1(bouncesUniformLocation, bounces);
-        GL.Uniform1(numSamplesUniformLocation, moved ? 1 : numSamples);
+        GL.Uniform1(samplesUniformLocation, moved ? 1 : samples);
+        GL.Uniform2(mouseUniformLocation, mouseX, mouseY);
 
-        Info = $"Samples: {(moved ? 1 : numSamples)}, Strata: {3}, Bounces: {bounces}";
+        Info = $"Samples: {(moved ? 1 : samples)}, Strata: {3}, Bounces: {bounces}";
     }
 
     ~RayTracer() {
