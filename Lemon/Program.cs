@@ -1,7 +1,4 @@
-﻿using OpenTK.Graphics.OpenGL4;
-using ImGuiNET;
-using Lemon.Shaders;
-using Lemon.Rendering;
+﻿using Lemon.Rendering;
 
 internal sealed class Program {
     static void Main(string[] args) {

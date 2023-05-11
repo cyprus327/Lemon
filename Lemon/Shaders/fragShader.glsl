@@ -181,9 +181,9 @@ void main() {
 	spheres[0].materialIndex = 0;
 	materials[0].albedo = vec3(0.8, 0.8, 0.8);
 	materials[0].roughness = 0.01;
-	materials[0].metallic = 0.01;
-	materials[0].specular = 1.0;
-	materials[0].ambient = 0.0;
+	materials[0].metallic = 1.0;
+	materials[0].specular = 0.01;
+	materials[0].ambient = 0.1;
 	
 	spheres[1].position = vec3(-0.8, -0.2, 0.0);
 	spheres[1].radius = 0.6;
@@ -192,7 +192,7 @@ void main() {
 	materials[1].roughness = 0.1;
 	materials[1].metallic = 0.5;
 	materials[1].specular = 0.1;
-	materials[1].ambient = 0.25;
+	materials[1].ambient = 0.1;
 
 	spheres[2].position = vec3(0.6, -0.1, 0.0);
 	spheres[2].radius = 0.5;
@@ -201,7 +201,7 @@ void main() {
 	materials[2].roughness = 0.01;
 	materials[2].metallic = 0.0;
 	materials[2].specular = 1.0;
-	materials[2].ambient = 0.35;
+	materials[2].ambient = 0.1;
 			  
 	spheres[3].position = vec3(0.0, 1.0, -0.8);
 	spheres[3].radius = 0.9;
@@ -210,7 +210,7 @@ void main() {
 	materials[3].roughness = 0.1;
 	materials[3].metallic = 0.01;
 	materials[3].specular = 0.55;
-	materials[3].ambient = 0.4;
+	materials[3].ambient = 0.1;
 	
 	// currently the only light source
 	vec3 lightPos = vec3(2.0, 3.0, 4.0);
@@ -228,7 +228,7 @@ void main() {
 				float xOffset = float(x) / float(STRATA);
 				float yOffset = float(y) / float(STRATA);
 				vec2 stratumPos = gl_FragCoord.xy + vec2(xOffset, yOffset);
-
+				
 				// calcualte ray direction and origin
 				rayDir = vec3(inverseView(rayOrigin, ForwardDir) * vec4(normalize(vec3(target) / target.w), 0.0));
 				rayOrigin = RayOrigin;
@@ -264,8 +264,8 @@ void main() {
 					vec3 sphereCol = diffuse + specularColor;
 					sampleCol += sphereCol * multiplier;
 
-					// update multiplier 
 					multiplier *= 0.5;
+
 					vec3 rand = vec3(
 						random(vec3(stratumPos.xy, Time + float(s) - float(i))),
 						random(vec3(float(s) - Time, stratumPos.xy + float(i))),
