@@ -1,6 +1,6 @@
 # Ray Tracer
 
-GOTO [FL-Raytracer](https://github.com/cyprus327/FL-Raytracer) for a better raytracer
+Go to [FL-Raytracer](https://github.com/cyprus327/FL-Raytracer) for a better raytracer
 
 IMPORTANT: This is not a production-level raytracer, it was just a project to learn more about ray tracing, path tracing, etc..
 
